@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Window-level theme used by the Activity before Compose takes over.
+        This is a plain stub — all real theming is handled by AttendifyTheme
+        in Compose. We just need NoActionBar so the system doesn't render
+        a title bar before setContent runs.
+
+        Note: Theme.Material3.DayNight.NoActionBar requires the material
+        components XML dependency which we don't need in a pure Compose app.
+        Theme.AppCompat.Light.NoActionBar is sufficient as the window stub.
+    -->
+    <style name="Theme.Attendify" parent="Theme.AppCompat.Light.NoActionBar" />
+</resources>
