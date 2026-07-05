@@ -22,6 +22,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +33,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dip.attendify.ui.common.GlassCard
+import com.dip.attendify.ui.common.WelcomeIllustration
+import com.dip.attendify.ui.theme.AtRiskRed
+import com.dip.attendify.ui.theme.AtRiskRedContainer
+import com.dip.attendify.ui.theme.OnAtRiskRedContainer
+import com.dip.attendify.ui.theme.AttendanceGreen
 import kotlin.math.min
 
 @Composable
@@ -77,12 +85,7 @@ private fun WelcomeEmptyState(onCreateSemester: () -> Unit) {
         verticalArrangement  = Arrangement.Center,
         horizontalAlignment  = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            Icons.Outlined.School,
-            contentDescription = null,
-            modifier           = Modifier.size(72.dp),
-            tint               = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-        )
+        WelcomeIllustration()
         Spacer(Modifier.height(24.dp))
         Text(
             "Welcome to Attendify",
@@ -222,7 +225,6 @@ private fun OverallAttendanceCard(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val trackColor   = MaterialTheme.colorScheme.surfaceVariant
-    val errorColor   = MaterialTheme.colorScheme.error
     val isAtRisk     = percent < target
 
     val animatedPercent by animateFloatAsState(
@@ -261,16 +263,34 @@ private fun OverallAttendanceCard(
                             size       = arcSize,
                             style      = Stroke(width = stroke, cap = StrokeCap.Round),
                         )
-                        // Progress
-                        drawArc(
-                            color      = if (isAtRisk) errorColor else primaryColor,
-                            startAngle = startAngle,
-                            sweepAngle = sweepFull * animatedPercent,
-                            useCenter  = false,
-                            topLeft    = Offset(inset, inset),
-                            size       = arcSize,
-                            style      = Stroke(width = stroke, cap = StrokeCap.Round),
-                        )
+                        // Progress — gradient green -> primary when healthy,
+                        // flat aggressive red when at risk (a gradient here
+                        // would soften the warning, which defeats the point)
+                        if (isAtRisk) {
+                            drawArc(
+                                color      = AtRiskRed,
+                                startAngle = startAngle,
+                                sweepAngle = sweepFull * animatedPercent,
+                                useCenter  = false,
+                                topLeft    = Offset(inset, inset),
+                                size       = arcSize,
+                                style      = Stroke(width = stroke, cap = StrokeCap.Round),
+                            )
+                        } else {
+                            drawArc(
+                                brush      = Brush.linearGradient(
+                                    colors = listOf(AttendanceGreen, primaryColor),
+                                    start  = Offset(0f, 0f),
+                                    end    = Offset(size.width, size.height),
+                                ),
+                                startAngle = startAngle,
+                                sweepAngle = sweepFull * animatedPercent,
+                                useCenter  = false,
+                                topLeft    = Offset(inset, inset),
+                                size       = arcSize,
+                                style      = Stroke(width = stroke, cap = StrokeCap.Round),
+                            )
+                        }
                     }
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -278,7 +298,7 @@ private fun OverallAttendanceCard(
                         text       = "${percent.toInt()}%",
                         style      = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color      = if (isAtRisk) MaterialTheme.colorScheme.error
+                        color      = if (isAtRisk) AtRiskRed
                         else MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
@@ -306,7 +326,7 @@ private fun OverallAttendanceCard(
                 Spacer(Modifier.height(12.dp))
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.errorContainer,
+                    color = AtRiskRedContainer,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -315,14 +335,14 @@ private fun OverallAttendanceCard(
                         Icon(
                             Icons.Default.Warning,
                             contentDescription = null,
-                            tint               = MaterialTheme.colorScheme.onErrorContainer,
+                            tint               = OnAtRiskRedContainer,
                             modifier           = Modifier.size(16.dp),
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             "Below ${target}% target",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            color = OnAtRiskRedContainer,
                         )
                     }
                 }
@@ -495,7 +515,7 @@ private fun SubjectAttendanceCard(
         label         = "subject_bar_${summary.subject.id}",
     )
 
-    Card(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
@@ -510,7 +530,7 @@ private fun SubjectAttendanceCard(
                     modifier         = Modifier
                         .size(38.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(subjectColor.copy(alpha = 0.15f)),
+                        .background(subjectColor.copy(alpha = 0.20f)),
                 ) {
                     Text(
                         text       = summary.subject.shortName,
@@ -542,7 +562,7 @@ private fun SubjectAttendanceCard(
                     style      = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color      = when {
-                        summary.isAtRisk -> MaterialTheme.colorScheme.error
+                        summary.isAtRisk -> AtRiskRed
                         else             -> subjectColor
                     },
                 )
@@ -570,8 +590,10 @@ private fun SubjectAttendanceCard(
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(3.dp))
                         .background(
-                            if (summary.isAtRisk) MaterialTheme.colorScheme.error
-                            else subjectColor
+                            if (summary.isAtRisk) SolidColor(AtRiskRed)
+                            else Brush.horizontalGradient(
+                                listOf(AttendanceGreen, subjectColor)
+                            )
                         )
                 )
             }
@@ -582,7 +604,7 @@ private fun SubjectAttendanceCard(
                 Text(
                     "Attend ${summary.mustAttend} more to reach ${target}%",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = AtRiskRed,
                 )
             } else if (summary.canSkip > 0) {
                 Text(
@@ -627,9 +649,9 @@ private fun SplitChip(
     color:      Color,
     modifier:   Modifier = Modifier,
 ) {
-    val chipColor = if (isAtRisk) MaterialTheme.colorScheme.errorContainer
-    else color.copy(alpha = 0.1f)
-    val textColor = if (isAtRisk) MaterialTheme.colorScheme.onErrorContainer
+    val chipColor = if (isAtRisk) AtRiskRedContainer
+    else color.copy(alpha = 0.16f)
+    val textColor = if (isAtRisk) OnAtRiskRedContainer
     else color
     Surface(shape = RoundedCornerShape(6.dp), color = chipColor, modifier = modifier) {
         Row(

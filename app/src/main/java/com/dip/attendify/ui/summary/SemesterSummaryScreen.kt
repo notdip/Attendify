@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -28,6 +29,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dip.attendify.ui.common.GlassCard
+import com.dip.attendify.ui.theme.AtRiskRed
+import com.dip.attendify.ui.theme.AttendanceGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,7 +142,6 @@ fun SemesterSummaryScreen(
 private fun OverallCard(state: SemesterSummaryState) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val trackColor   = MaterialTheme.colorScheme.surfaceVariant
-    val errorColor   = MaterialTheme.colorScheme.error
     val isAtRisk     = state.overallPercent < 75f
 
     val animatedPct by animateFloatAsState(
@@ -147,7 +150,7 @@ private fun OverallCard(state: SemesterSummaryState) {
         label         = "summary_ring",
     )
 
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape    = RoundedCornerShape(16.dp),
     ) {
@@ -167,11 +170,22 @@ private fun OverallCard(state: SemesterSummaryState) {
                         drawArc(trackColor, -90f, 360f, false,
                             Offset(inset, inset), arcSize,
                             style = Stroke(stroke, cap = StrokeCap.Round))
-                        drawArc(
-                            if (isAtRisk) errorColor else primaryColor,
-                            -90f, 360f * animatedPct, false,
-                            Offset(inset, inset), arcSize,
-                            style = Stroke(stroke, cap = StrokeCap.Round))
+                        if (isAtRisk) {
+                            drawArc(
+                                AtRiskRed, -90f, 360f * animatedPct, false,
+                                Offset(inset, inset), arcSize,
+                                style = Stroke(stroke, cap = StrokeCap.Round))
+                        } else {
+                            drawArc(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(AttendanceGreen, primaryColor),
+                                    start  = Offset(0f, 0f),
+                                    end    = Offset(size.width, size.height),
+                                ),
+                                startAngle = -90f, sweepAngle = 360f * animatedPct, useCenter = false,
+                                topLeft = Offset(inset, inset), size = arcSize,
+                                style = Stroke(stroke, cap = StrokeCap.Round))
+                        }
                     }
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -179,7 +193,7 @@ private fun OverallCard(state: SemesterSummaryState) {
                         "${state.overallPercent.toInt()}%",
                         style      = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color      = if (isAtRisk) errorColor
+                        color      = if (isAtRisk) AtRiskRed
                         else MaterialTheme.colorScheme.onSurface,
                     )
                     Text("overall",
@@ -230,7 +244,7 @@ private fun StatRow(label: String, value: String, color: Color) {
 
 @Composable
 private fun StreakCard(current: Int, longest: Int) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape    = RoundedCornerShape(16.dp),
     ) {
@@ -291,7 +305,7 @@ private fun TasksSummaryCard(done: Int, pending: Int) {
         label         = "tasks_bar",
     )
 
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape    = RoundedCornerShape(16.dp),
     ) {
@@ -361,7 +375,7 @@ private fun SubjectSummaryCard(row: SubjectSummaryRow) {
         label         = "summary_bar_${row.subjectName}",
     )
 
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape    = RoundedCornerShape(12.dp),
     ) {

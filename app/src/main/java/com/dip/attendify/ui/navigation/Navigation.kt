@@ -3,6 +3,14 @@ package com.dip.attendify.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -11,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -80,7 +89,10 @@ fun AttendifyNavHost() {
     Scaffold(
         bottomBar = {
             if (currentRoute in bottomNavRoutes) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = 0.dp,
+                ) {
                     bottomNavItems.forEach { item ->
                         val selected = currentRoute == item.route
                         NavigationBarItem(
@@ -94,13 +106,42 @@ fun AttendifyNavHost() {
                                     restoreState    = true
                                 }
                             },
-                            icon  = {
-                                Icon(
-                                    if (selected) item.selectedIcon else item.icon,
-                                    contentDescription = item.label,
+                            icon = {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier         = Modifier
+                                        .size(width = 56.dp, height = 32.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(
+                                            if (selected)
+                                                MaterialTheme.colorScheme.secondaryContainer
+                                            else Color.Transparent
+                                        ),
+                                ) {
+                                    Icon(
+                                        if (selected) item.selectedIcon else item.icon,
+                                        contentDescription = item.label,
+                                        tint = if (selected)
+                                            MaterialTheme.colorScheme.onSecondaryContainer
+                                        else
+                                            MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(22.dp),
+                                    )
+                                }
+                            },
+                            label = {
+                                Text(
+                                    item.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (selected)
+                                        MaterialTheme.colorScheme.onSurface
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             },
-                            label = { Text(item.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Color.Transparent,
+                            ),
                         )
                     }
                 }

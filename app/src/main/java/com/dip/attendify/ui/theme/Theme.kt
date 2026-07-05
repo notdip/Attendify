@@ -68,6 +68,28 @@ private val StaticDarkColorScheme = darkColorScheme(
 )
 
 // ─────────────────────────────────────────────
+// Vibrancy tokens (C5)
+//
+// M3's `error` role is deliberately desaturated for
+// dark-theme accessibility — good for form validation,
+// but too gentle for "you're about to fall below your
+// attendance requirement." AtRiskRed is a separate,
+// punchier token used ONLY for attendance at-risk states,
+// so it stays consistent across dynamic-color devices
+// instead of drifting with the wallpaper-derived palette.
+//
+// AttendanceGreen is the "safe" end of the gradient
+// progress bars/ring (green → primary), reusing the same
+// green already used for "Present" stat pills.
+// ─────────────────────────────────────────────
+
+val AtRiskRed          = Color(0xFFFF453A)
+val AtRiskRedContainer = Color(0xFF4A1512)
+val OnAtRiskRedContainer = Color(0xFFFFDAD4)
+
+val AttendanceGreen = Color(0xFF4CAF50)
+
+// ─────────────────────────────────────────────
 // Typography — system default, tightened scale
 // ─────────────────────────────────────────────
 

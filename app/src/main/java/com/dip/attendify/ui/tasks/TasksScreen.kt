@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dip.attendify.data.entity.*
+import com.dip.attendify.ui.common.GlassCard
+import com.dip.attendify.ui.common.NoTasksIllustration
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -273,9 +275,9 @@ private fun TaskCard(
 
     val statusColor by animateColorAsState(
         targetValue   = when (task.status) {
-            TaskStatus.PENDING     -> MaterialTheme.colorScheme.surfaceVariant
-            TaskStatus.IN_PROGRESS -> Color(0xFFFFF9C4)
-            TaskStatus.DONE        -> Color(0xFFE8F5E9)
+            TaskStatus.PENDING     -> MaterialTheme.colorScheme.surfaceContainerLow
+            TaskStatus.IN_PROGRESS -> Color(0xFFFFA726).copy(alpha = 0.10f)
+            TaskStatus.DONE        -> Color(0xFF4CAF50).copy(alpha = 0.08f)
         },
         animationSpec = tween(300),
         label         = "task_status_color",
@@ -283,10 +285,10 @@ private fun TaskCard(
 
     var showDelete by remember { mutableStateOf(false) }
 
-    Card(
-        shape  = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = statusColor),
-        modifier = Modifier.fillMaxWidth(),
+    GlassCard(
+        shape     = RoundedCornerShape(12.dp),
+        baseColor = statusColor,
+        modifier  = Modifier.fillMaxWidth(),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -305,7 +307,7 @@ private fun TaskCard(
                     },
                     contentDescription = "Status",
                     tint               = when (task.status) {
-                        TaskStatus.PENDING     -> MaterialTheme.colorScheme.onSurfaceVariant
+                        TaskStatus.PENDING     -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         TaskStatus.IN_PROGRESS -> Color(0xFFFFA726)
                         TaskStatus.DONE        -> Color(0xFF4CAF50)
                     },
@@ -420,7 +422,7 @@ private fun TaskCard(
 private fun SummaryChip(label: String, color: Color) {
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = color.copy(alpha = 0.12f),
+        color = color.copy(alpha = 0.18f),
     ) {
         Text(
             label,
@@ -441,11 +443,7 @@ private fun EmptyTasksState(hasFilters: Boolean, modifier: Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            Icons.Outlined.Checklist, null,
-            modifier = Modifier.size(56.dp),
-            tint     = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-        )
+        NoTasksIllustration()
         Spacer(Modifier.height(16.dp))
         Text(
             if (hasFilters) "No tasks match your filters"

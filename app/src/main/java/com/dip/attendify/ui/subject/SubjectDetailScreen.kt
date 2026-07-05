@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dip.attendify.data.entity.*
+import com.dip.attendify.ui.common.GlassCard
+import com.dip.attendify.ui.theme.AtRiskRed
+import com.dip.attendify.ui.theme.AtRiskRedContainer
+import com.dip.attendify.ui.theme.OnAtRiskRedContainer
+import com.dip.attendify.ui.theme.AttendanceGreen
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -181,7 +187,7 @@ private fun StatsHeaderCard(
     state:        SubjectDetailState,
     subjectColor: Color,
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape    = RoundedCornerShape(16.dp),
     ) {
@@ -198,7 +204,7 @@ private fun StatsHeaderCard(
                         "${state.percentage.toInt()}%",
                         style      = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Bold,
-                        color      = if (state.isAtRisk) MaterialTheme.colorScheme.error
+                        color      = if (state.isAtRisk) AtRiskRed
                         else subjectColor,
                     )
                     Text(
@@ -236,8 +242,10 @@ private fun StatsHeaderCard(
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(4.dp))
                         .background(
-                            if (state.isAtRisk) MaterialTheme.colorScheme.error
-                            else subjectColor
+                            if (state.isAtRisk) SolidColor(AtRiskRed)
+                            else Brush.horizontalGradient(
+                                listOf(AttendanceGreen, subjectColor)
+                            )
                         )
                 )
             }
@@ -248,7 +256,7 @@ private fun StatsHeaderCard(
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = if (state.isAtRisk)
-                    MaterialTheme.colorScheme.errorContainer
+                    AtRiskRedContainer
                 else
                     subjectColor.copy(alpha = 0.1f),
             ) {
@@ -261,7 +269,7 @@ private fun StatsHeaderCard(
                     Icon(
                         if (state.isAtRisk) Icons.Default.Warning else Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint    = if (state.isAtRisk) MaterialTheme.colorScheme.onErrorContainer
+                        tint    = if (state.isAtRisk) OnAtRiskRedContainer
                         else subjectColor,
                         modifier = Modifier.size(16.dp),
                     )
@@ -274,7 +282,7 @@ private fun StatsHeaderCard(
                         else
                             "Attendance looks good",
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (state.isAtRisk) MaterialTheme.colorScheme.onErrorContainer
+                        color = if (state.isAtRisk) OnAtRiskRedContainer
                         else subjectColor,
                     )
                 }
@@ -316,9 +324,9 @@ private fun SplitStatCard(
     modifier: Modifier = Modifier,
 ) {
     val isAtRisk     = stats.isAtRisk
-    val bgColor      = if (isAtRisk) MaterialTheme.colorScheme.errorContainer
+    val bgColor      = if (isAtRisk) AtRiskRedContainer
     else color.copy(alpha = 0.08f)
-    val primaryColor = if (isAtRisk) MaterialTheme.colorScheme.onErrorContainer else color
+    val primaryColor = if (isAtRisk) OnAtRiskRedContainer else color
 
     Surface(shape = RoundedCornerShape(10.dp), color = bgColor, modifier = modifier) {
         Column(modifier = Modifier.padding(10.dp)) {
@@ -369,7 +377,6 @@ private fun TrendLineChart(
     subjectColor: Color,
 ) {
     val targetColor = MaterialTheme.colorScheme.outline
-    val errorColor  = MaterialTheme.colorScheme.error
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -421,7 +428,7 @@ private fun TrendLineChart(
 
                     // Line
                     for (i in 0 until points.lastIndex) {
-                        val color = if (points[i].percentage < target) errorColor else subjectColor
+                        val color = if (points[i].percentage < target) AtRiskRed else subjectColor
                         drawLine(
                             color       = color,
                             start       = Offset(xOf(i), yOf(points[i].percentage)),
@@ -434,7 +441,7 @@ private fun TrendLineChart(
                     // Dots
                     points.forEachIndexed { i, p ->
                         drawCircle(
-                            color  = if (p.percentage < target) errorColor else subjectColor,
+                            color  = if (p.percentage < target) AtRiskRed else subjectColor,
                             radius = 3.5.dp.toPx(),
                             center = Offset(xOf(i), yOf(p.percentage)),
                         )

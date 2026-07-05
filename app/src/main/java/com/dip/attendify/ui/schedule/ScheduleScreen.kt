@@ -31,6 +31,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dip.attendify.data.entity.AcademicEventEntity
 import com.dip.attendify.data.entity.AcademicEventType
+import com.dip.attendify.ui.common.GlassCard
+import com.dip.attendify.ui.common.GlassVariant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -172,55 +174,61 @@ private fun ReadOnlySlotRow(
     }.getOrDefault(MaterialTheme.colorScheme.primary)
     else Color.Transparent
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier          = Modifier
+    val rowBaseColor = if (isFilled) cellColor.copy(alpha = 0.15f)
+    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+
+    GlassCard(
+        variant   = GlassVariant.Light,
+        shape     = RoundedCornerShape(10.dp),
+        baseColor = rowBaseColor,
+        modifier  = Modifier
             .fillMaxWidth()
             .height(if (isFilled && (cell?.spanSlots ?: 1) > 1)
-                (56 * (cell?.spanSlots ?: 1)).dp else 56.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(
-                if (isFilled) cellColor.copy(alpha = 0.15f)
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            )
-            .padding(horizontal = 14.dp),
+                (56 * (cell?.spanSlots ?: 1)).dp else 56.dp),
     ) {
-        Column(modifier = Modifier.width(68.dp)) {
-            Text(startTime, style = MaterialTheme.typography.labelMedium)
-            Text(endTime,   style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        if (isFilled) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(cellColor)
-            )
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    cell!!.subjectName,
-                    style      = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines   = 1,
-                    overflow   = TextOverflow.Ellipsis,
-                )
-                if ((cell.spanSlots) > 1) {
-                    Text(
-                        "${cell.spanSlots}-slot lab",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier          = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
+        ) {
+            Column(modifier = Modifier.width(68.dp)) {
+                Text(startTime, style = MaterialTheme.typography.labelMedium)
+                Text(endTime,   style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        } else {
-            Text(
-                "Free",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            )
+
+            if (isFilled) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(cellColor)
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        cell!!.subjectName,
+                        style      = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines   = 1,
+                        overflow   = TextOverflow.Ellipsis,
+                    )
+                    if ((cell.spanSlots) > 1) {
+                        Text(
+                            "${cell.spanSlots}-slot lab",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    "Free",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                )
+            }
         }
     }
 }
