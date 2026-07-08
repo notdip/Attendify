@@ -386,7 +386,10 @@ private fun CellEditDialog(
         onDismissRequest = onDismiss,
         title   = { Text("Assign Subject") },
         text    = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier            = Modifier.verticalScroll(rememberScrollState()),
+            ) {
                 if (subjects.isEmpty()) {
                     Text(
                         "No subjects yet. Add subjects from Home first.",

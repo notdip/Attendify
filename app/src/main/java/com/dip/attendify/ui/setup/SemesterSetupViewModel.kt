@@ -3,6 +3,7 @@ package com.dip.attendify.ui.setup
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dip.attendify.core.SemesterManager
+import com.dip.attendify.data.entity.SemesterEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,15 +13,19 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 data class SemesterSetupState(
-    val name:          String     = "",
-    val startDate:     LocalDate? = null,
-    val endDate:       LocalDate? = null,
-    val targetPercent: Int        = 75,
-    val warningBuffer: Int        = 5,
-    val isLoading:     Boolean    = false,
-    val isDone:        Boolean    = false,
-    val error:         String?    = null,
+    val name:              String     = "",
+    val startDate:         LocalDate? = null,
+    val endDate:           LocalDate? = null,
+    val targetPercent:     Int        = 75,
+    val warningBuffer:     Int        = 5,
+    val isLoading:         Boolean    = false,
+    val isDone:            Boolean    = false,
+    val error:             String?    = null,
+    val editingSemesterId: Int?       = null,
 ) {
+    val isEditMode: Boolean
+        get() = editingSemesterId != null
+
     val canProceed: Boolean
         get() = name.isNotBlank()
                 && startDate != null
@@ -42,19 +47,51 @@ class SemesterSetupViewModel @Inject constructor(
     fun onTargetChange(v: Int)          = _state.update { it.copy(targetPercent = v.coerceIn(1, 100)) }
     fun onWarningBufferChange(v: Int)   = _state.update { it.copy(warningBuffer = v.coerceIn(1, 20)) }
 
+    /** Prefills the form from the currently active semester, for edit mode. */
+    fun loadActiveForEdit() {
+        viewModelScope.launch {
+            semesterManager.getActiveSemester()?.let { s ->
+                _state.update {
+                    it.copy(
+                        editingSemesterId = s.id,
+                        name              = s.name,
+                        startDate         = LocalDate.ofEpochDay(s.startDate),
+                        endDate           = LocalDate.ofEpochDay(s.endDate),
+                        targetPercent     = s.targetAttendancePercent,
+                        warningBuffer     = s.warningBufferPercent,
+                    )
+                }
+            }
+        }
+    }
+
     fun submit() {
         val s = _state.value
         if (!s.canProceed) return
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                semesterManager.createSemester(
-                    name          = s.name.trim(),
-                    startDate     = s.startDate!!.toEpochDay(),
-                    endDate       = s.endDate!!.toEpochDay(),
-                    targetPercent = s.targetPercent,
-                    warningBuffer = s.warningBuffer,
-                )
+                if (s.editingSemesterId != null) {
+                    semesterManager.updateSemester(
+                        SemesterEntity(
+                            id                      = s.editingSemesterId,
+                            name                    = s.name.trim(),
+                            startDate               = s.startDate!!.toEpochDay(),
+                            endDate                 = s.endDate!!.toEpochDay(),
+                            targetAttendancePercent = s.targetPercent,
+                            warningBufferPercent    = s.warningBuffer,
+                            isActive                = true,
+                        )
+                    )
+                } else {
+                    semesterManager.createSemester(
+                        name          = s.name.trim(),
+                        startDate     = s.startDate!!.toEpochDay(),
+                        endDate       = s.endDate!!.toEpochDay(),
+                        targetPercent = s.targetPercent,
+                        warningBuffer = s.warningBuffer,
+                    )
+                }
                 _state.update { it.copy(isLoading = false, isDone = true) }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = "Failed to save semester") }

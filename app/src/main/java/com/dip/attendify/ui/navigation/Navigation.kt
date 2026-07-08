@@ -51,6 +51,7 @@ sealed class Route(val path: String) {
     }
 
     data object SemesterSetup  : Route("semester_setup")
+    data object EditSemester   : Route("edit_semester")
     data object Summary        : Route("summary")
     data object TimetableSetup : Route("timetable_setup")
 }
@@ -162,6 +163,7 @@ fun AttendifyNavHost() {
                     onSubjectClick   = { id -> navController.navigate(Route.SubjectDetail.path(id)) },
                     onManageSubjects = { navController.navigate(Route.Subjects.path) },
                     onNewSemester    = { navController.navigate(Route.SemesterSetup.path) },
+                    onEditSemester   = { navController.navigate(Route.EditSemester.path) },
                     onSummary        = { navController.navigate(Route.Summary.path) },
                 )
             }
@@ -204,6 +206,13 @@ fun AttendifyNavHost() {
             composable(Route.SemesterSetup.path) {
                 SemesterSetupScreen(
                     onComplete = { navController.navigate(Route.TimetableSetup.path) }
+                )
+            }
+
+            composable(Route.EditSemester.path) {
+                SemesterSetupScreen(
+                    isEditMode = true,
+                    onComplete = { navController.popBackStack() },
                 )
             }
 

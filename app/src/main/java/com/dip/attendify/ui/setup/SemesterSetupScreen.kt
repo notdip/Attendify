@@ -22,16 +22,23 @@ private val dateFmt = DateTimeFormatter.ofPattern("dd MMM yyyy")
 @Composable
 fun SemesterSetupScreen(
     onComplete: () -> Unit,
+    isEditMode: Boolean = false,
     vm: SemesterSetupViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(isEditMode) {
+        if (isEditMode) vm.loadActiveForEdit()
+    }
 
     LaunchedEffect(state.isDone) {
         if (state.isDone) onComplete()
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("New Semester") }) }
+        topBar = {
+            TopAppBar(title = { Text(if (state.isEditMode) "Edit Semester" else "New Semester") })
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -117,7 +124,7 @@ fun SemesterSetupScreen(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Text("Continue to Timetable Setup")
+                    Text(if (state.isEditMode) "Save Changes" else "Continue to Timetable Setup")
                 }
             }
 

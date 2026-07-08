@@ -40,12 +40,17 @@ import com.dip.attendify.ui.theme.AtRiskRedContainer
 import com.dip.attendify.ui.theme.OnAtRiskRedContainer
 import com.dip.attendify.ui.theme.AttendanceGreen
 import kotlin.math.min
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+private val semesterDateFmt = DateTimeFormatter.ofPattern("dd MMM")
 
 @Composable
 fun HomeScreen(
     onSubjectClick:   (Int) -> Unit,
     onManageSubjects: () -> Unit,
     onNewSemester:    () -> Unit,
+    onEditSemester:   () -> Unit = {},
     onSummary:        () -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
@@ -68,6 +73,7 @@ fun HomeScreen(
                 onSubjectClick   = onSubjectClick,
                 onManageSubjects = onManageSubjects,
                 onNewSemester    = onNewSemester,
+                onEditSemester   = onEditSemester,
                 onSummary        = onSummary,
             )
         }
@@ -122,12 +128,28 @@ private fun HomeContent(
     onSubjectClick:   (Int) -> Unit,
     onManageSubjects: () -> Unit,
     onNewSemester:    () -> Unit,
+    onEditSemester:   () -> Unit = {},
     onSummary:        () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(state.semester?.name ?: "Home") },
+                title = {
+                    Column(
+                        modifier = Modifier.clickable(onClick = onEditSemester),
+                    ) {
+                        Text(state.semester?.name ?: "Home")
+                        state.semester?.let { sem ->
+                            Text(
+                                text  = "${LocalDate.ofEpochDay(sem.startDate).format(semesterDateFmt)}" +
+                                        "  –  " +
+                                        LocalDate.ofEpochDay(sem.endDate).format(semesterDateFmt),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                },
                 actions = {
                     IconButton(onClick = onManageSubjects) {
                         Icon(Icons.Outlined.MenuBook, "Manage Subjects")
