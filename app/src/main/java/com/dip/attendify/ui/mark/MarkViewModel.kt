@@ -324,7 +324,6 @@ class MarkViewModel @Inject constructor(
     fun onAddSubjectChange(id: Int)          = _state.update { it.copy(addForm = it.addForm.copy(subjectId = id)) }
     fun onAddStartSlotChange(id: Int)        = _state.update { it.copy(addForm = it.addForm.copy(startSlotId = id, endSlotId = id)) }
     fun onAddEndSlotChange(id: Int)          = _state.update { it.copy(addForm = it.addForm.copy(endSlotId = id)) }
-    fun onAddSessionTypeChange(t: SessionType) = _state.update { it.copy(addForm = it.addForm.copy(sessionType = t)) }
     fun onAddNoteChange(n: String)           = _state.update { it.copy(addForm = it.addForm.copy(note = n)) }
 
     fun submitAddSession() {
@@ -340,19 +339,34 @@ class MarkViewModel @Inject constructor(
                     error = "Cannot add session outside semester dates") }
                 return@launch
             }
-            attendanceRepo.upsert(
-                AttendanceEntity(
-                    semesterId  = semester.id,
-                    subjectId   = form.subjectId!!,
-                    date        = date.toEpochDay(),
-                    dayOfWeek   = date.dayOfWeek.value,
-                    startSlotId = form.startSlotId!!,
-                    endSlotId   = form.endSlotId!!,
-                    sessionType = form.sessionType,
-                    status      = AttendanceStatus.PRESENT,
-                    note        = form.note.ifBlank { null },
-                )
+
+            // Reuse any existing record for this exact slot (e.g. a CANCELLED
+            // one from the same slot being reused for a makeup session)
+            // instead of blindly inserting a duplicate row.
+            val existing = attendanceRepo.getExisting(
+                semId       = semester.id,
+                subjectId   = form.subjectId!!,
+                date        = date.toEpochDay(),
+                startSlotId = form.startSlotId!!,
+                endSlotId   = form.endSlotId!!,
             )
+
+            val entity = AttendanceEntity(
+                id          = existing?.id ?: 0,
+                semesterId  = semester.id,
+                subjectId   = form.subjectId,
+                date        = date.toEpochDay(),
+                dayOfWeek   = date.dayOfWeek.value,
+                startSlotId = form.startSlotId,
+                endSlotId   = form.endSlotId,
+                sessionType = form.sessionType,
+                status      = AttendanceStatus.PRESENT,
+                note        = form.note.ifBlank { null },
+            )
+
+            if (existing != null) attendanceRepo.update(entity)
+            else attendanceRepo.upsert(entity)
+
             // Increment reloadTrigger to force the flow to re-fire for the same date
             _state.update { it.copy(
                 showAddSheet   = false,

@@ -30,7 +30,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dip.attendify.data.entity.AttendanceStatus
 import com.dip.attendify.data.entity.SessionType
 import com.dip.attendify.data.entity.SubjectEntity
-import com.dip.attendify.data.entity.TimeSlotEntity
 import com.dip.attendify.ui.common.GlassCard
 import com.dip.attendify.ui.common.NoSessionsIllustration
 import java.time.LocalDate
@@ -45,9 +44,9 @@ private val headerDateFmt  = DateTimeFormatter.ofPattern("d MMM")
 fun MarkScreen(
     vm: MarkViewModel = hiltViewModel(),
 ) {
-    val state    by vm.state.collectAsStateWithLifecycle()
-    val subjects by vm.subjects.collectAsStateWithLifecycle()
-    val slots    by vm.slots.collectAsStateWithLifecycle()
+    val state         by vm.state.collectAsStateWithLifecycle()
+    val subjects      by vm.subjects.collectAsStateWithLifecycle()
+    val availableSlots by vm.availableSlots.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -87,11 +86,12 @@ fun MarkScreen(
 
                 else -> {
                     SessionList(
-                        sessions  = state.sessions,
-                        onMark    = { idx, status -> vm.markSession(idx, status) },
-                        onDismiss = { idx -> vm.dismissSession(idx) },
-                        onClear   = { idx -> vm.clearAttendance(idx) },
-                        onNote    = { idx -> vm.openNoteDialog(idx) },
+                        sessions      = state.sessions,
+                        onMark        = { idx, status -> vm.markSession(idx, status) },
+                        onDismiss     = { idx -> vm.dismissSession(idx) },
+                        onUndoDismiss = { idx -> vm.undoDismiss(idx) },
+                        onClear       = { idx -> vm.clearAttendance(idx) },
+                        onNote        = { idx -> vm.openNoteDialog(idx) },
                     )
                 }
             }
@@ -103,7 +103,7 @@ fun MarkScreen(
         AddSessionSheet(
             form      = state.addForm,
             subjects  = subjects,
-            slots     = slots,
+            slots     = availableSlots,
             vm        = vm,
         )
     }
@@ -207,11 +207,12 @@ private fun DateNavigationBar(
 
 @Composable
 private fun SessionList(
-    sessions:  List<MarkSession>,
-    onMark:    (Int, AttendanceStatus) -> Unit,
-    onDismiss: (Int) -> Unit,
-    onClear:   (Int) -> Unit,
-    onNote:    (Int) -> Unit,
+    sessions:      List<MarkSession>,
+    onMark:        (Int, AttendanceStatus) -> Unit,
+    onDismiss:     (Int) -> Unit,
+    onUndoDismiss: (Int) -> Unit,
+    onClear:       (Int) -> Unit,
+    onNote:        (Int) -> Unit,
 ) {
     LazyColumn(
         contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
@@ -219,12 +220,13 @@ private fun SessionList(
     ) {
         itemsIndexed(sessions, key = { _, s -> "${s.subjectId}-${s.startSlotId}" }) { idx, session ->
             SessionCard(
-                session   = session,
-                onPresent = { onMark(idx, AttendanceStatus.PRESENT) },
-                onAbsent  = { onMark(idx, AttendanceStatus.ABSENT) },
-                onDismiss = { onDismiss(idx) },
-                onClear   = { onClear(idx) },
-                onNote    = { onNote(idx) },
+                session       = session,
+                onPresent     = { onMark(idx, AttendanceStatus.PRESENT) },
+                onAbsent      = { onMark(idx, AttendanceStatus.ABSENT) },
+                onDismiss     = { onDismiss(idx) },
+                onUndoDismiss = { onUndoDismiss(idx) },
+                onClear       = { onClear(idx) },
+                onNote        = { onNote(idx) },
             )
         }
     }
@@ -235,12 +237,13 @@ private fun SessionList(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SessionCard(
-    session:   MarkSession,
-    onPresent: () -> Unit,
-    onAbsent:  () -> Unit,
-    onDismiss: () -> Unit,
-    onClear:   () -> Unit,
-    onNote:    () -> Unit,
+    session:       MarkSession,
+    onPresent:     () -> Unit,
+    onAbsent:      () -> Unit,
+    onDismiss:     () -> Unit,
+    onUndoDismiss: () -> Unit,
+    onClear:       () -> Unit,
+    onNote:        () -> Unit,
 ) {
     val subjectColor = runCatching {
         Color(android.graphics.Color.parseColor(session.subjectColor))
@@ -286,37 +289,40 @@ private fun SessionCard(
             enableDismissFromStartToEnd = false,
         ) {
             SessionCardContent(
-                session      = session,
-                subjectColor = subjectColor,
-                isCancelled  = false,
-                onPresent    = onPresent,
-                onAbsent     = onAbsent,
-                onClear      = onClear,
-                onNote       = onNote,
+                session       = session,
+                subjectColor  = subjectColor,
+                isCancelled   = false,
+                onPresent     = onPresent,
+                onAbsent      = onAbsent,
+                onUndoDismiss = onUndoDismiss,
+                onClear       = onClear,
+                onNote        = onNote,
             )
         }
     } else {
         SessionCardContent(
-            session      = session,
-            subjectColor = subjectColor,
-            isCancelled  = isCancelled,
-            onPresent    = onPresent,
-            onAbsent     = onAbsent,
-            onClear      = onClear,
-            onNote       = onNote,
+            session       = session,
+            subjectColor  = subjectColor,
+            isCancelled   = isCancelled,
+            onPresent     = onPresent,
+            onAbsent      = onAbsent,
+            onUndoDismiss = onUndoDismiss,
+            onClear       = onClear,
+            onNote        = onNote,
         )
     }
 }
 
 @Composable
 private fun SessionCardContent(
-    session:      MarkSession,
-    subjectColor: Color,
-    isCancelled:  Boolean,
-    onPresent:    () -> Unit,
-    onAbsent:     () -> Unit,
-    onClear:      () -> Unit,
-    onNote:       () -> Unit,
+    session:       MarkSession,
+    subjectColor:  Color,
+    isCancelled:   Boolean,
+    onPresent:     () -> Unit,
+    onAbsent:      () -> Unit,
+    onUndoDismiss: () -> Unit,
+    onClear:       () -> Unit,
+    onNote:        () -> Unit,
 ) {
     val alpha by animateFloatAsState(
         targetValue = if (isCancelled) 0.45f else 1f,
@@ -398,11 +404,26 @@ private fun SessionCardContent(
 
             // ── Status row ──────────────────────────
             if (isCancelled) {
-                Text(
-                    text  = "Class cancelled for today",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier              = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text  = "Class cancelled for today",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onUndoDismiss) {
+                        Icon(
+                            Icons.Default.Replay,
+                            contentDescription = null,
+                            modifier           = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Undo", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
             } else {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -520,7 +541,7 @@ private fun SessionTypeBadge(type: SessionType) {
 private fun AddSessionSheet(
     form:     AddSessionForm,
     subjects: List<SubjectEntity>,
-    slots:    List<TimeSlotEntity>,
+    slots:    List<AvailableSlot>,
     vm:       MarkViewModel,
 ) {
     ModalBottomSheet(onDismissRequest = vm::closeAddSheet) {
@@ -549,23 +570,15 @@ private fun AddSessionSheet(
                 )
             }
 
-            // Session type
-            FormLabel("Session type")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(
-                    SessionType.PROXY   to "Proxy",
-                    SessionType.EXTRA   to "Extra",
-                    SessionType.REGULAR to "Regular",
-                ).forEach { (type, label) ->
-                    FilterChip(
-                        selected = form.sessionType == type,
-                        onClick  = { vm.onAddSessionTypeChange(type) },
-                        label    = { Text(label) },
-                    )
-                }
+            // Session type — Proxy is the only type this form creates now.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FormLabel("Session type")
+                Spacer(Modifier.width(8.dp))
+                SessionTypeBadge(SessionType.PROXY)
             }
 
-            // Slot range
+            // Slot range — only genuinely free (or explicitly cancelled) slots
+            // are offered here, never the full timetable slot list.
             if (slots.isNotEmpty()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -574,7 +587,7 @@ private fun AddSessionSheet(
                     Column(modifier = Modifier.weight(1f)) {
                         FormLabel("Start slot")
                         DropdownSelector(
-                            options     = slots.map { it.id to "${it.startTime}" },
+                            options     = slots.map { it.slotId to it.startTime },
                             selectedId  = form.startSlotId,
                             placeholder = "Start",
                             onSelect    = vm::onAddStartSlotChange,
@@ -582,16 +595,23 @@ private fun AddSessionSheet(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         FormLabel("End slot")
+                        val startIdx = slots.indexOfFirst { it.slotId == form.startSlotId }
                         DropdownSelector(
                             options     = slots
-                                .filter { it.slotOrder >= (slots.find { s -> s.id == form.startSlotId }?.slotOrder ?: 0) }
-                                .map { it.id to "${it.endTime}" },
+                                .filterIndexed { idx, _ -> startIdx < 0 || idx >= startIdx }
+                                .map { it.slotId to it.endTime },
                             selectedId  = form.endSlotId,
                             placeholder = "End",
                             onSelect    = vm::onAddEndSlotChange,
                         )
                     }
                 }
+            } else {
+                Text(
+                    "No free slots available for this day.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             // Note

@@ -98,4 +98,7 @@ interface AttendanceDao {
 
     @Query("SELECT * FROM attendance WHERE semesterId = :semId ORDER BY date ASC")
     suspend fun getAllForSemester(semId: Int): List<AttendanceEntity>
+
+    @Query("SELECT * FROM attendance")
+    suspend fun getAllRecords(): List<AttendanceEntity>
 }

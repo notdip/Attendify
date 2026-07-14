@@ -116,6 +116,10 @@ interface AttendanceRepository {
     fun observeHeatmapStats(semId: Int): Flow<List<HeatStatRaw>>
     suspend fun getBetweenDates(semId: Int, from: Long, to: Long): List<AttendanceEntity>
     suspend fun getAllForSemester(semId: Int): List<AttendanceEntity>
+
+    // One-time 2.1.1 cleanup — see AttendifyApp for the call site.
+    suspend fun getAllRecords(): List<AttendanceEntity>
+    suspend fun deduplicateRecords(): Int
 }
 
 class AttendanceRepositoryImpl @Inject constructor(
@@ -134,7 +138,48 @@ class AttendanceRepositoryImpl @Inject constructor(
     override fun observeHeatmapStats(semId: Int)        = dao.observeHeatmapStats(semId)
     override suspend fun getBetweenDates(semId: Int, from: Long, to: Long) = dao.getBetweenDates(semId, from, to)
     override suspend fun getAllForSemester(semId: Int)  = dao.getAllForSemester(semId)
+    override suspend fun getAllRecords()                = dao.getAllRecords()
+
+    // Removes duplicate attendance rows caused by the pre-2.1.1 ad-hoc
+    // "Add Session" bug, where submitting a proxy/extra session onto an
+    // already-CANCELLED slot inserted a brand-new row instead of replacing
+    // the cancelled one — leaving two rows sharing the same
+    // (semesterId, subjectId, date, startSlotId, endSlotId) key.
+    //
+    // For each duplicate group, keeps one winner:
+    //   - Prefers a non-CANCELLED record (the real, later marking) over a
+    //     leftover CANCELLED one.
+    //   - Among ties, keeps the highest id (most recently inserted).
+    // Deletes every other row in the group. Safe to call repeatedly —
+    // it's a no-op once no duplicates remain.
+    override suspend fun deduplicateRecords(): Int {
+        val all = dao.getAllRecords()
+        val groups = all.groupBy {
+            Quadruple(it.semesterId, it.subjectId, it.date, Pair(it.startSlotId, it.endSlotId))
+        }
+
+        var deletedCount = 0
+        groups.values
+            .filter { it.size > 1 }
+            .forEach { group ->
+                val winner = group
+                    .sortedWith(
+                        compareBy<AttendanceEntity> { record ->
+                            if (record.status == com.dip.attendify.data.entity.AttendanceStatus.CANCELLED) 1 else 0
+                        }.thenByDescending { it.id }
+                    )
+                    .first()
+
+                group.filter { it.id != winner.id }.forEach { loser ->
+                    dao.deleteById(loser.id)
+                    deletedCount++
+                }
+            }
+        return deletedCount
+    }
 }
+
+private data class Quadruple<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
 
 // ─────────────────────────────────────────────
 // Task
